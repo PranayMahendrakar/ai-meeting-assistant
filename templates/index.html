@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meeting Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🧑‍💼</span>
+                <div>
+                    <h1>AI Meeting Assistant</h1>
+                    <p>Powered by Whisper + GPT</p>
+                </div>
+            </div>
+            <div class="header-badge">
+                <span class="badge-dot" id="statusDot"></span>
+                <span id="statusText">Checking API...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-card">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">🎙️</div>
+                    <h2>Upload Meeting Recording</h2>
+                    <p>Drag & drop your audio file here, or click to browse</p>
+                    <p class="file-types">Supported: MP3, MP4, WAV, M4A, OGG, FLAC, WebM (max 100MB)</p>
+                    <button class="browse-btn" onclick="document.getElementById('audioInput').click()">
+                        Choose Audio File
+                    </button>
+                    <input type="file" id="audioInput" accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm,.ogg,.flac" hidden>
+                </div>
+
+                <!-- File Info -->
+                <div class="file-info hidden" id="fileInfo">
+                    <div class="file-details">
+                        <span class="file-icon">🎵</span>
+                        <div>
+                            <p class="file-name" id="fileName"></p>
+                            <p class="file-size" id="fileSize"></p>
+                        </div>
+                        <button class="remove-btn" onclick="removeFile()">✕</button>
+                    </div>
+                    <button class="analyze-btn" id="analyzeBtn" onclick="analyzeAudio()">
+                        <span class="btn-icon">✨</span>
+                        Analyze Meeting
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Processing Indicator -->
+        <section class="processing-section hidden" id="processingSection">
+            <div class="processing-card">
+                <div class="processing-animation">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+                <h3 id="processingText">Transcribing audio with Whisper...</h3>
+                <div class="progress-steps">
+                    <div class="step active" id="step1">
+                        <span class="step-icon">🎙️</span>
+                        <span>Transcribing</span>
+                    </div>
+                    <div class="step" id="step2">
+                        <span class="step-icon">🧠</span>
+                        <span>Analyzing</span>
+                    </div>
+                    <div class="step" id="step3">
+                        <span class="step-icon">📋</span>
+                        <span>Generating</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section class="error-section hidden" id="errorSection">
+            <div class="error-card">
+                <span class="error-icon">⚠️</span>
+                <h3>Something went wrong</h3>
+                <p id="errorMessage"></p>
+                <button class="retry-btn" onclick="resetApp()">Try Again</button>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section hidden" id="resultsSection">
+            <!-- Results Header -->
+            <div class="results-header">
+                <h2>📊 Meeting Analysis Results</h2>
+                <div class="results-actions">
+                    <button class="action-btn" onclick="copyResults()">📋 Copy All</button>
+                    <button class="action-btn" onclick="downloadResults()">⬇️ Download</button>
+                    <button class="action-btn secondary" onclick="resetApp()">🔄 New Analysis</button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar" id="statsBar">
+                <div class="stat-item">
+                    <span class="stat-value" id="statWords">-</span>
+                    <span class="stat-label">Words</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statActions">-</span>
+                    <span class="stat-label">Action Items</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statTasks">-</span>
+                    <span class="stat-label">Tasks</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statDecisions">-</span>
+                    <span class="stat-label">Key Decisions</span>
+                </div>
+            </div>
+
+            <!-- Result Cards Grid -->
+            <div class="results-grid">
+
+                <!-- Summary Card -->
+                <div class="result-card summary-card">
+                    <div class="card-header">
+                        <span class="card-icon">📝</span>
+                        <h3>Meeting Summary</h3>
+                    </div>
+                    <div class="card-body">
+                        <p id="summaryText" class="summary-text"></p>
+                    </div>
+                </div>
+
+                <!-- Action Items Card -->
+                <div class="result-card">
+                    <div class="card-header">
+                        <span class="card-icon">✅</span>
+                        <h3>Action Items</h3>
+                        <span class="card-count" id="actionCount">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="actionItemsList" class="items-list"></div>
+                    </div>
+                </div>
+
+                <!-- Tasks Card -->
+                <div class="result-card">
+                    <div class="card-header">
+                        <span class="card-icon">📌</span>
+                        <h3>Tasks</h3>
+                        <span class="card-count" id="taskCount">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="tasksList" class="items-list"></div>
+                    </div>
+                </div>
+
+                <!-- Key Decisions Card -->
+                <div class="result-card decisions-card">
+                    <div class="card-header">
+                        <span class="card-icon">🎯</span>
+                        <h3>Key Decisions</h3>
+                        <span class="card-count" id="decisionCount">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="decisionsList" class="items-list"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Transcript Accordion -->
+            <div class="transcript-accordion">
+                <button class="accordion-btn" onclick="toggleTranscript()">
+                    <span>📄 Full Transcript</span>
+                    <span id="accordionArrow">▼</span>
+                </button>
+                <div class="transcript-body hidden" id="transcriptBody">
+                    <p id="transcriptText" class="transcript-text"></p>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>🧑‍💼 AI Meeting Assistant &nbsp;|&nbsp; Powered by OpenAI Whisper + GPT-4o-mini</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
